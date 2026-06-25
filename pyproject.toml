@@ -1,0 +1,96 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fast-ice"
+requires-python = ">=3.8,<3.14"
+authors = [
+    {name="Geoscience Australia", email="DigitalEarthAntarctica@ga.gov.au"},
+]
+description = "Detection of landfast ice (fast-ice) from Sentinel-1 SAR imagery"
+classifiers=[
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+]
+dynamic = ["version"]
+dependencies = [
+    #"normalized-product @ git+https://github.com/jlo031/normalized_product.git@feature/pyproject_toml",
+    "segment-anything @ git+https://github.com/facebookresearch/segment-anything.git", 
+    "opencv-python>=4.11.0.86,<5", 
+    "pycocotools>=2.0.11,<3", 
+    "matplotlib>=3.11.0,<4", 
+    "onnxruntime>=1.23.2,<2", 
+    "onnx>=1.22.0,<2",
+    "xarray>=2026.4.0,<2027", 
+    "odc-stac[botocore]>=0.5.2,<0.6", 
+    "odc-geo>=0.5.1,<0.6", 
+    "stac-geoparquet>=0.8.0,<0.9", 
+    "pystac>=1.14.3,<2", 
+    "pystac-client>=0.9.0,<0.10", 
+    "fsspec>=2026.6.0,<2027", 
+    "shapely>=2.1.2,<3", 
+    "aiohttp>=3.14.1,<4", 
+    "torch>=2.10.0,<3", 
+    "torchvision>=0.25.0,<0.26", 
+    "ipykernel>=7.3.0,<8", 
+    "scikit-learn>=1.9.0,<2", 
+    "supervision>=0.29.1,<0.30"
+]
+
+[project.urls]
+Homepage = "https://github.com/abradley60/fast-ice.git"
+# Documentation = "XXX"
+
+[project.scripts]
+
+[tool.setuptools_scm]
+version_file = "fast_ice/_version.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/*"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+fast_ice = ["**/*.yaml", "**/*.yml", "**/*.gpkg", "**/*.json"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+fast-ice = { path = ".", editable = true }
+normalized-product = { path = "../normalized_product", editable = true }
+
+[tool.pixi.dependencies]
+gdal = ">=3.4,<3.13"
+pyproj = ">=3.0"
+rasterio = ">=1.3"
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+dev = { features = ["dev"], solve-group = "default" }
+
+[tool.pixi.feature.dev.tasks]
+
+lint = "black fast_ice"
+
+[tool.black]
+target-version = ["py310", "py311", "py312", "py313"]
+
+[tool.pixi.feature.dev.dependencies]
+pre-commit = ">=4.2.0"
+pytest = ">=8.3.5"
+coverage = ">=7.8.0"
+
+[tool.pixi.tasks]
+export-conda = """
+pixi workspace export conda-environment environment.yaml --environment default && \
+sed -ix "s/^name: .*/name: fast-ice/" environment.yaml; rm environment.yamlx
+"""
+[dependency-groups]
+dev = ["black==26.3.1"]

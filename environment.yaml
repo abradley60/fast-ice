@@ -1,0 +1,17 @@
+name: fast-ice
+channels:
+- conda-forge
+- nodefaults
+dependencies:
+- gdal >=3.4,<3.13
+- python >=3.8,<3.14
+- pip
+- pip:
+  - -e .
+  - normalized-product @ git+https://github.com/jlo031/normalized_product.git
+  - segment-anything @ git+https://github.com/facebookresearch/segment-anything.git
+  - opencv-python>=4.11.0.86, <5
+  - pycocotools>=2.0.11, <3
+  - matplotlib>=3.11.0, <4
+  - onnxruntime>=1.23.2, <2
+  - onnx>=1.22.0, <2

@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# project specific files
+fast_ice/_version.py
+notebooks/data/*
