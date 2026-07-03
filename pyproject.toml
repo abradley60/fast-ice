@@ -38,7 +38,7 @@ dependencies = [
     "ipykernel>=7.3.0,<8", 
     "scikit-learn>=1.9.0,<2", 
     "supervision>=0.29.1,<0.30", 
-    "rioxarray>=0.22.0,<0.23", "folium>=0.20.0,<0.21",
+    "rioxarray>=0.22.0,<0.23", "folium>=0.20.0,<0.21", "boto3",
     ]
 
 [project.urls]
@@ -71,6 +71,7 @@ normalized-product = { path = "../normalized_product", editable = true }
 gdal = ">=3.4,<3.13"
 pyproj = ">=3.0"
 rasterio = ">=1.3"
+boto3 = "*"
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
