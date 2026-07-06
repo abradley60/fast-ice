@@ -41,7 +41,7 @@ dependencies = [
     "rioxarray>=0.22.0,<0.23", 
     "folium>=0.20.0,<0.21", 
     "boto3", 
-    "onnxscript>=0.7.0,<0.8",
+    "onnxscript>=0.7.0,<0.8", "pooch>=1.9.0,<2", "ipywidgets>=8.1.8,<9",
     ]
 
 [project.urls]
