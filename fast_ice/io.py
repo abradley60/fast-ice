@@ -22,6 +22,7 @@ METHOD = Literal["geoparquet", "api"]
 SAR_UNIT = Literal["linear", "db"]
 
 
+# Create GeoInterface type to support type checking
 @runtime_checkable
 class GeoInterface(Protocol):
     @property
@@ -29,6 +30,27 @@ class GeoInterface(Protocol):
 
 
 def _validate_and_standardise_sentinel1(da: xr.DataArray) -> xr.DataArray:
+    """Format the supplied xarray in preparation for the norm prod library.
+    If the xarray.DataArray has a coordinate reference system, ensure it's listed in the coordinates.
+    If xarray.DataArray specifies linear units, convert to decibels.
+
+    Parameters
+    ----------
+    da : xr.DataArray
+        xarray.DataArray containing Sentinel-1 data and unit attribute
+
+    Returns
+    -------
+    xr.DataArray
+        The input xarray.DataArray in decibel units
+
+    Raises
+    ------
+    ValueError
+        If no coordinate reference system is found.
+    ValueError
+        If a unit other than "db" or "linear" is supplied.
+    """
 
     # Check that CRS exists, and update CRS in coords table to match ODC convention
     if da.rio.crs is None:
@@ -52,6 +74,7 @@ def _validate_and_standardise_sentinel1(da: xr.DataArray) -> xr.DataArray:
 
 
 def _load_from_file(filename: str | os.PathLike) -> xr.DataArray:
+    """Light wrapper to load using rioxarray and drop the band dimension"""
 
     result = rioxarray.open_rasterio(filename)
 
@@ -66,6 +89,32 @@ def load_sentinel_1_from_file(
     band_unit: SAR_UNIT | None,
     timestamp: datetime | None,
 ) -> xr.DataArray:
+    """Load Sentinel-1 data from a file into an xarray.DataArray and
+    attach required metadata (band, band unit, and timestamp)
+
+    Parameters
+    ----------
+    filename : str | os.PathLike
+        Path to the file to load.
+    band : str
+        Name of the band (e.g. hh_gamma0).
+    band_unit : SAR_UNIT | None
+        Unit of the band (either db, linear, or None if part of file metadata).
+    timestamp : datetime | None
+        Timestamp of the file (None if part of the file metadata).
+
+    Returns
+    -------
+    xr.DataArray
+        Loaded Sentinel-1 observation with appropriate metadata.
+
+    Raises
+    ------
+    ValueError
+        If no timestamp is found or provided.
+    ValueError
+        If no band unit is found or provided.
+    """
 
     da = _load_from_file(filename)
 
@@ -89,13 +138,21 @@ def load_sentinel_1_from_file(
     return da
 
 
-def _build_cql2_filter(filters: dict | None, raw_filter: dict | None) -> dict | None:
+def _build_cql2_filter(filters: dict | None) -> dict | None:
+    """Utility function to allow the user to construct a filter dictionary for
+    odc-stac.load from a simple dictionary of filter property and value
 
-    if raw_filter is not None and filters is not None:
-        raise ValueError("Provide either filters or raw_filters, not both")
+    Parameters
+    ----------
+    filters : dict | None
+        A dictionary of key-value pairs to use for filtering, assuming equality
+        e.g. {'sat:relative_orbit': 40} -> 'sat:relative_orbit' == 40
 
-    if raw_filter is not None:
-        return raw_filter
+    Returns
+    -------
+    dict | None
+        A dictionary following the CQL2 JSON standard, suitable for odc-stac.load
+    """
 
     if not filters:
         return None
@@ -121,12 +178,36 @@ def _stac_items_from_api(
     end_time: datetime | str,
     intersects: GeoInterface,
     filters: dict | None = None,  # key-value pairs with the assumed operator "="
-    raw_filter: dict | None = None,  # Custom filter dictionary using CQL2 standard
 ) -> ItemCollection:
+    """Retrieve STAC items from a STAC API using pystac-client
+
+    Parameters
+    ----------
+    stac_endpoint : str
+        URL to search for STAC items (e.g. https://explorer.dev.dea.ga.gov.au/stac).
+    collection : str
+        STAC collection to search (e.g. ga_s1_nrb_iw_hh_1).
+    start_time : datetime | str
+        Time to search from (e.g. "2021-01-01" or datetime(2021, 01, 01)).
+    end_time : datetime | str
+        Time to search to (e.g. "2021-01-31" or datetime(2021, 01, 31)).
+    intersects : GeoInterface
+        The geometry to intersect with, must have the "__geointerface__" property.
+    filters : dict | None, optional
+        Any filters to apply to the STAC query, by default None.
+        Only equality (=) is supported for filters.
+        e.g. {'sat:relative_orbit': 40} -> 'sat:relative_orbit' = 40
+        e.g. {'eo:platform': 'Sentinel-1A'} -> 'eo:platform' = 'Sentinel-1A'
+
+    Returns
+    -------
+    ItemCollection
+        A list of STAC items that can be passed to a loader.
+    """
 
     stac_client = Client.open(stac_endpoint)
 
-    cql2_filter = _build_cql2_filter(filters, raw_filter)
+    cql2_filter = _build_cql2_filter(filters)
 
     # Convert datetimes to strings for use in query
     if isinstance(start_time, datetime):
@@ -153,7 +234,32 @@ def _stac_items_from_geoparquet(
     intersects: Geometry,
     filters: dict | None,
 ) -> ItemCollection:
-    # TODO add logic for dealing with the geoparquet file being a URL
+    """Retrieve STAC items from a STAC GeoParquet using geopandas
+
+    Parameters
+    ----------
+    geoparquet_file : str
+        File to search for STAC items (e.g. ga_s1_nrb_ew_hh_hv_1_v2.parquet).
+    collection : str
+        STAC collection to search (e.g. ga_s1_nrb_ew_hh_hv_1).
+    start_time : datetime | str
+        Time to search from (e.g. "2021-01-01" or datetime(2021, 01, 01)).
+    end_time : datetime | str
+        Time to search to (e.g. "2021-01-31" or datetime(2021, 01, 31)).
+    intersects : GeoInterface
+        The geometry to intersect with, must have the "__geointerface__" property.
+    filters : dict | None, optional
+        Any filters to apply to the STAC query, by default None.
+        Only equality (=) is supported for filters.
+        e.g. {'sat:relative_orbit': 40} -> 'sat:relative_orbit' = 40
+        e.g. {'eo:platform': 'Sentinel-1A'} -> 'eo:platform' = 'Sentinel-1A'
+
+    Returns
+    -------
+    ItemCollection
+        A list of STAC items that can be passed to a loader.
+    """
+
     stac_index = gpd.read_parquet(geoparquet_file)
 
     # filter on collection
@@ -179,12 +285,51 @@ def query_sentinel_1_stac(
     end_time: datetime,
     intersects: GeoInterface,
     filters: dict | None = None,  # key-value pairs with the assumed operator "="
-    raw_filter: dict | None = None,  # Custom filter dictionary using CQL2 standard
     *,
     method: METHOD = "api",
     api_endpoint: str | None = None,
     geoparquet_file: str | os.PathLike | None = None,
 ) -> ItemCollection:
+    """Retrieve STAC items from a STAC API or STAC GeoParquet file
+
+    Parameters
+    ----------
+    collection : str
+        STAC collection to search (e.g. ga_s1_nrb_ew_hh_hv_1).
+    start_time : datetime | str
+        Time to search from (e.g. "2021-01-01" or datetime(2021, 01, 01)).
+    end_time : datetime | str
+        Time to search to (e.g. "2021-01-31" or datetime(2021, 01, 31)).
+    intersects : GeoInterface
+        The geometry to intersect with, must have the '__geointerface__' property.
+    filters : dict | None, optional
+        Any filters to apply to the STAC query, by default None.
+        Only equality (=) is supported for filters.
+        e.g. {'sat:relative_orbit': 40} -> 'sat:relative_orbit' = 40
+        e.g. {'eo:platform': 'Sentinel-1A'} -> 'eo:platform' = 'Sentinel-1A'
+    method : METHOD, optional
+        Method to use, either 'api' or 'geoparquet', by default 'api'.
+    api_endpoint : str | None, optional
+        URL to search for STAC items (e.g. https://explorer.dev.dea.ga.gov.au/stac), by default None
+    geoparquet_file : str | os.PathLike | None, optional
+       File to search for STAC items (e.g. ga_s1_nrb_ew_hh_hv_1_v2.parquet), by default None
+
+    Returns
+    -------
+    ItemCollection
+        A list of STAC items that can be passed to a loader.
+
+    Raises
+    ------
+    ValueError
+        If no STAC API endpoint is supplied when using method='api'
+    ValueError
+        If no STAC GeoParquet file is supplied when using method='geoparquet'
+    ValueError
+        If an unrecognised method is supplied. Allowed methods are 'api' and 'geoparquet'
+    ValueError
+        If no STAC items are returned from the search.
+    """
 
     if method == "api":
         if api_endpoint is None:
@@ -197,17 +342,10 @@ def query_sentinel_1_stac(
             end_time,
             intersects,
             filters=filters,
-            raw_filter=raw_filter,
         )
     elif method == "geoparquet":
         if geoparquet_file is None:
             raise ValueError("geoparquet_file required when method='geoparquet'")
-
-        if raw_filter is not None:
-            raise ValueError(
-                "raw_filter (CQL2) is not supported for the geoparquet path — "
-                "use filters= instead"
-            )
 
         stac_items = _stac_items_from_geoparquet(
             geoparquet_file,
@@ -242,6 +380,42 @@ def load_sentinel_1_from_stac(
     geobox: GeoBox | None = None,
     like: xr.DataArray | xr.Dataset | None = None,
 ) -> xr.DataArray:
+    """Load a list of Sentinel-1 STAC items into an xarray.DataArray and
+    add required metadata to prepare for use in the normalised product step
+
+    Parameters
+    ----------
+    item_collection : ItemCollection
+        A list of STAC items that can be passed to a loader.
+    band : str
+        The band to load (e.g. 'hh_gamma0').
+    band_unit : SAR_UNIT
+        The native units of the band, one of 'linear' or 'db'.
+    groupby : str | None, optional
+        How to group STAC items, by default 'time'. Alternative is 'sat:relative_orbit'.
+    crs : CRS | str | int | None, optional
+        Coordinate reference system to project to, by default None.
+    resolution : float | int | None, optional
+        Resolution to output at in the units of the output CRS, by default None.
+    bbox : BoundingBox | tuple[float, float, float, float] | None, optional
+        Bounding box to crop the loaded items to, by default None.
+    geopolygon : GeoInterface | None, optional
+        Geopolygon to crop the loaded items to, by default None.
+    geobox : GeoBox | None, optional
+        GeoBox to specify the CRS, resolution and geopolygon to crop to, by default None.
+    like : xr.DataArray | xr.Dataset | None, optional
+        xr.DataArray to specify the CRS, resolution and extent to crop to, by default None.
+
+    Returns
+    -------
+    xr.DataArray
+        An xr.DataArray containing Sentinel-1 data in decibels for use with the normalised product approach.
+
+    Raises
+    ------
+    ValueError
+        If no STAC items are supplied.
+    """
 
     # Check size of stac items before proceeding to load
     if len(item_collection) == 0:
