@@ -14,5 +14,12 @@ EW_STAC_GEOPARQUET = pooch.create(
 
 
 def download_ew_stac_geoparquet() -> Path:
+    """Download EW STAC GeoParquet file for local use
+
+    Returns
+    -------
+    Path
+        Path to downloaded EW STAC GeoParquet file on disk
+    """
 
     return Path(EW_STAC_GEOPARQUET.fetch(EW_STAC_GEOPARQUET_FILENAME, progressbar=True))
