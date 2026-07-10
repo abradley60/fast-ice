@@ -392,7 +392,7 @@ def load_sentinel_1_from_stac(
     band_unit : SAR_UNIT
         The native units of the band, one of 'linear' or 'db'.
     groupby : str | None, optional
-        How to group STAC items, by default 'time'. Alternative is 'sat:relative_orbit'.
+        How to group STAC items, by default 'time'. Alternative is 'sat:absolute_orbit' which will work better for Antarctica.
     crs : CRS | str | int | None, optional
         Coordinate reference system to project to, by default None.
     resolution : float | int | None, optional
