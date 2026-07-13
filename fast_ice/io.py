@@ -276,7 +276,9 @@ def _stac_items_from_geoparquet(
     for key, value in (filters or {}).items():
         items_gdf = items_gdf[items_gdf[key] == value]
 
-    return stac_geoparquet.to_item_collection(items_gdf)
+    sorted_items_gdf = items_gdf.copy().sort_values("datetime").reset_index(drop=True)
+
+    return stac_geoparquet.to_item_collection(sorted_items_gdf)
 
 
 def query_sentinel_1_stac(
