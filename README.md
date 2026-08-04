@@ -12,9 +12,6 @@ Detection of landfast ice (fast-ice) from Sentinel-1 SAR imagery
 
 ```bash
 git clone https://github.com/jlo031/normalized_product.git
-cd normalized_product
-git checkout update/merge_improved_normprod
-cd ..
 ```
 
 ### Install the project with pixi
