@@ -22,3 +22,9 @@ cd ..
 ```bash
 pixi install
 ```
+
+### Usage
+
+See the following notebooks for an end to end implementation example:
+1. [fast_ice_from_nrb_files.ipynb](notebooks/fast_ice_from_nrb_files.ipynb)
+2. [fast_ice_from_stac_xarray.ipynb](notebooks/fast_ice_from_stac_xarray.ipynb)
