@@ -221,3 +221,7 @@ __marimo__/
 # project specific files
 fast_ice/_version.py
 notebooks/data/*
+
+# model weights
+fast_ice/sam/weights
+fast_ice/svm/weights

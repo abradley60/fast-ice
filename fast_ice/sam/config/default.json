@@ -1,0 +1,11 @@
+{
+    "points_per_side": 95,
+    "pred_iou_thresh": 0.85,
+    "stability_score_thresh": 0.65,
+    "crop_n_layers": 2,
+    "crop_n_points_downscale_factor": 2,
+    "crop_overlap_ratio": 0.65,
+    "box_nms_thresh": 0.3,
+    "min_mask_region_area": 50,
+    "output_mode": "binary_mask"
+}
