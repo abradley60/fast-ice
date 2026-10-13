@@ -12,9 +12,6 @@ Detection of landfast ice (fast-ice) from Sentinel-1 SAR imagery
 
 ```bash
 git clone https://github.com/jlo031/normalized_covariance.git
-cd normalized_covariance
-git checkout xarray_update
-cd ..
 ```
 
 ### Install the project with pixi
